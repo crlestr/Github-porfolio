@@ -1,0 +1,95 @@
+-- 1) View the whole table
+SELECT *
+FROM layoffs_staging2;
+
+-- 2) Get max of total and percentage laid off
+SELECT MAX(total_laid_off), MAX(percentage_laid_off)
+FROM layoffs_staging2;
+
+-- 3) Companies with 100% layoff, ordered by funds raised
+SELECT *
+FROM layoffs_staging2
+WHERE percentage_laid_off = 1
+ORDER BY funds_raised_millions DESC;
+
+-- 4) Total laid off by company
+SELECT company, SUM(total_laid_off) AS total_laid_off
+FROM layoffs_staging2
+GROUP BY company
+ORDER BY total_laid_off DESC;
+
+-- 5) Min and max dates
+SELECT MIN(`date`) AS min_date, MAX(`date`) AS max_date
+FROM layoffs_staging2;
+
+-- 6) Total laid off by country
+SELECT country, SUM(total_laid_off) AS total_laid_off
+FROM layoffs_staging2
+GROUP BY country
+ORDER BY total_laid_off DESC;
+
+-- 7) Again viewing the whole table (seems repetitive, but included as you had it)
+SELECT *
+FROM layoffs_staging2;
+
+-- 8) Again total laid off by company
+SELECT company, SUM(total_laid_off) AS total_laid_off
+FROM layoffs_staging2
+GROUP BY company
+ORDER BY total_laid_off DESC;
+
+-- 9) Monthly total laid off
+SELECT SUBSTRING(`date`, 1, 7) AS `month`, SUM(total_laid_off) AS total_laid_off
+FROM layoffs_staging2
+WHERE SUBSTRING(`date`, 1, 7) IS NOT NULL
+GROUP BY `month`
+ORDER BY `month` ASC;
+
+-- Rolling total monthly layoff (no ORDER BY in CTE)
+WITH Rolling_Total AS (
+    SELECT SUBSTRING(`date`, 1, 7) AS `month`, SUM(total_laid_off) AS total_off
+    FROM layoffs_staging2
+    WHERE SUBSTRING(`date`, 1, 7) IS NOT NULL
+    GROUP BY `month`
+)
+SELECT `month`, total_off,
+       SUM(total_off) OVER (ORDER BY `month`) AS rolling_total
+FROM Rolling_Total
+ORDER BY `month` ASC;
+
+-- Top 5 companies by year with most layoffs (no ORDER BY in CTE)
+WITH Company_Year AS (
+    SELECT company, YEAR(`date`) AS years, SUM(total_laid_off) AS total_laid_off
+    FROM layoffs_staging2
+    GROUP BY company, years
+),
+Company_Year_Rank AS (
+    SELECT *,
+           DENSE_RANK() OVER (PARTITION BY years ORDER BY total_laid_off DESC) AS ranking
+    FROM Company_Year
+    WHERE years IS NOT NULL
+)
+SELECT *
+FROM Company_Year_Rank
+WHERE ranking <= 5
+ORDER BY years, ranking;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
